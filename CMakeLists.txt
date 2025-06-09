@@ -15,9 +15,10 @@ pkg_check_modules(DEPS REQUIRED hyprland pixman-1 libdrm pango pangocairo)
 
 add_library(hycov SHARED
 	src/main.cpp
-	src/dispatchers.cpp
-	src/OvGridLayout.cpp
-	src/globaleventhook.cpp
+	src/Plugin.cpp
+	src/OverviewLayout.cpp
+	src/OverviewManager.cpp
+	src/DwindleSwitcher.cpp
 )
 
 target_include_directories(hycov PRIVATE ${DEPS_INCLUDE_DIRS})

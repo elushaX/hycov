@@ -1,0 +1,82 @@
+#pragma once
+
+#include "OverviewManager.hpp"
+
+#include <hyprland/src/layout/IHyprLayout.hpp>
+#include <hyprland/src/SharedDefs.hpp>
+
+#include <map>
+#include <utility>
+
+
+class OverviewLayout : public IHyprLayout {
+
+  struct WindowState {
+    Vector2D pos;
+    Vector2D size;
+
+    Vector2D posReal;
+    Vector2D sizeReal;
+
+    long monitorId = 0;
+    long workspaceId = 0;
+    std::string workspaceName;
+    
+    float ratio = 1.f;
+    bool floating = false;
+  };
+
+  struct OverviewWindowNode {
+    explicit OverviewWindowNode(PHLWINDOW  window_);
+
+    bool operator==(const OverviewWindowNode &in) const {
+      return window == in.window;
+    }
+
+    PHLWINDOW window = nullptr;
+    WindowState savedState;
+  };
+
+public:
+  explicit OverviewLayout(OverviewManager* overviewManager);
+
+  void onEnable() override;
+  void onDisable() override;
+
+public:
+  void onWindowCreatedTiling(PHLWINDOW, eDirection direction) override;
+  void onWindowRemovedTiling(PHLWINDOW) override;
+  void onWindowRemoved(PHLWINDOW) override;
+
+  void onBeginDragWindow() override;
+
+  bool isWindowTiled(PHLWINDOW) override;
+  PHLWINDOW getNextWindowCandidate(PHLWINDOW) override;
+  void recalculateMonitor(const MONITORID &) override;
+  void recalculateWindow(PHLWINDOW) override;
+  void resizeActiveWindow(const Vector2D &, eRectCorner corner, PHLWINDOW pWindow) override;
+  void fullscreenRequestForWindow(PHLWINDOW pWindow, eFullscreenMode CURRENT_EFFECTIVE_MODE, eFullscreenMode EFFECTIVE_MODE) override;
+  std::any layoutMessage(SLayoutMessageHeader, std::string) override;
+  SWindowRenderLayoutHints requestRenderHints(PHLWINDOW) override;
+  void switchWindows(PHLWINDOW, PHLWINDOW) override;
+  void alterSplitRatio(PHLWINDOW, float, bool) override;
+  std::string getLayoutName() override;
+  Vector2D predictSizeForNewWindowTiled() override;
+  void replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) override;
+  void moveWindowTo(PHLWINDOW, const std::string &direction, bool silent) override;
+
+private:
+  void updateLayout();
+  void calculateOverviewGrid(const std::vector<OverviewWindowNode*>& windows, const PHLWORKSPACE& workspace) const;
+  void updateWorkspaces();
+
+public:
+  std::map<CWindow*, OverviewWindowNode> m_windowNodes;
+
+  const int border = 5;
+  const int gapIn = 20;
+  const int gapOut = 150;
+
+private:
+  OverviewManager* mOverviewManager = nullptr;
+};
