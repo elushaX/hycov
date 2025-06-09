@@ -7,7 +7,7 @@ It has less features for now but a more stable and easy to scale codebase to mai
 
 ## Roadmap
   - dont resize actual windows, just scale the render buffers
-  - add seceral new modes (overview workspace, overview monitor, overview all)
+  - add several new modes (overview workspace, overview monitor, overview all)
   - add workspaces in overview
   - restore some old features from the original repo
 
