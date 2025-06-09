@@ -1,9 +1,9 @@
 ## hycov
 A Hyprland overview mode plugin.
 
-The original repository was outdated and hard to update to current version of hyprland API
-This is the reimplementation of it.
-It has less features for now but a more stable and easy to scale codebase to maintain.
+The [original repository](https://github.com/DreamMaoMao/hycov) was archived and hard to update to current version of hyprland API. <br>
+This is the reimplementation of it. <br>
+It has less features for now but a more stable and easy to scale codebase to maintain. <br>
 
 ## Roadmap
   - dont resize actual windows, just scale the render buffers
