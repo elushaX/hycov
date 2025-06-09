@@ -27,11 +27,19 @@ void OverviewManager::setCurrentSwitcher(const std::string& name) {
   }
 }
 
-void OverviewManager::toggle() {
+bool OverviewManager::isOverview() {
   auto currentName = g_pLayoutManager->getCurrentLayout()->getLayoutName();
   auto overviewName = mOverviewLayout->getLayoutName();
+  return currentName == overviewName;
+}
 
-  if (currentName == overviewName) {
+PHLWINDOW OverviewManager::windowFromCoords(const Vector2D& pos) {
+  if (!mOverviewLayout) return nullptr;
+  return mOverviewLayout->windowFromCoords(pos);
+}
+
+void OverviewManager::toggle() {
+  if (isOverview()) {
     leaveOverview();
   } else {
     enterOverview();
@@ -39,10 +47,7 @@ void OverviewManager::toggle() {
 }
 
 void OverviewManager::leaveOverview() {
-  auto currentName = g_pLayoutManager->getCurrentLayout()->getLayoutName();
-  auto overviewName = mOverviewLayout->getLayoutName();
-
-  if (currentName != overviewName) return;
+  if (!isOverview()) return;
 
   mCurrentSwitcher->onLeaveOverviewBefore();
   g_pLayoutManager->switchToLayout(mFallbackLayout->getLayoutName());
@@ -52,10 +57,7 @@ void OverviewManager::leaveOverview() {
 }
 
 void OverviewManager::enterOverview() {
-  auto currentName = g_pLayoutManager->getCurrentLayout()->getLayoutName();
-  auto overviewName = mOverviewLayout->getLayoutName();
-
-  if (currentName == overviewName) return;
+  if (isOverview()) return;
 
   mFallbackLayout = g_pLayoutManager->getCurrentLayout();
 
@@ -71,7 +73,7 @@ void OverviewManager::onLastActiveWindow(PHLWINDOW windowToFocus) {
   g_pCompositor->focusWindow(std::move(windowToFocus));
 }
 
-void OverviewManager::setOverviewLayout(IHyprLayout *layout) {
+void OverviewManager::setOverviewLayout(IHyprOverviewLayout *layout) {
   mOverviewLayout = layout;
 }
 

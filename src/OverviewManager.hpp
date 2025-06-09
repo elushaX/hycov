@@ -5,6 +5,13 @@
 #include <map>
 #include <memory>
 
+class IHyprOverviewLayout : public IHyprLayout {
+public:
+  IHyprOverviewLayout() = default;
+
+  virtual PHLWINDOW windowFromCoords(const Vector2D&) = 0;
+};
+
 struct LayoutSwitcher {
   virtual std::string getName() const { return "all"; }
   virtual void onEnterOverviewBefore();
@@ -18,9 +25,13 @@ struct LayoutSwitcher {
 class OverviewManager {
 public:
   OverviewManager();
-  void setOverviewLayout(IHyprLayout* layout);
+  void setOverviewLayout(IHyprOverviewLayout* layout);
   void registerSwitcher(const std::shared_ptr<LayoutSwitcher>& switcher);
   void toggle();
+
+  bool isOverview();
+
+  PHLWINDOW windowFromCoords(const Vector2D& pos);
 
 public:
   void leaveOverview();
@@ -36,5 +47,5 @@ private:
   std::map<std::string, std::shared_ptr<LayoutSwitcher>> mSwitchers;
 
   IHyprLayout* mFallbackLayout = nullptr;
-  IHyprLayout* mOverviewLayout = nullptr;
+  IHyprOverviewLayout* mOverviewLayout = nullptr;
 };

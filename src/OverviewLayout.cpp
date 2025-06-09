@@ -24,7 +24,7 @@ OverviewLayout::OverviewWindowNode::OverviewWindowNode(PHLWINDOW  window_) {
 
   savedState.floating = window->m_isFloating;
 
-  if (!savedState.size.x || !savedState.size.y) {
+  if (savedState.size.x == 0 || savedState.size.y == 0) {
     savedState.size = savedState.sizeReal;
     savedState.size.clamp({10, 10});
   }
@@ -108,7 +108,7 @@ void OverviewLayout::onWindowRemoved(PHLWINDOW pWindow) {
 }
 
 void OverviewLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
-  m_windowNodes.erase(pWindow.get());
+  m_windowNodes.erase(pWindow);
   updateLayout();
 }
 
@@ -119,10 +119,10 @@ void OverviewLayout::updateLayout() {
 }
 
 void OverviewLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
-  if (m_windowNodes.contains(window.get())) return;
+  if (m_windowNodes.contains(window)) return;
 
   auto newNode = OverviewWindowNode(window);
-  m_windowNodes.insert({ window.get(), newNode });
+  m_windowNodes.insert({ window, newNode });
 
   updateLayout();
 }
@@ -198,7 +198,7 @@ void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*
     auto windowPos = cellPos;
     auto windowSize = cellSize;
 
-    if (1) {
+    // if (1) {
       if (cellSize.x > node->savedState.size.x && cellSize.y > node->savedState.size.y) {
         windowPos = cellPos + (cellSize / 2) - (node->savedState.size / 2);
         windowSize = node->savedState.size;
@@ -213,11 +213,12 @@ void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*
           windowPos.y += (cellSize.y - windowSize.y) / 2;
         }
       }
-    }
+    // }
 
-    node->window->m_position = windowPos;
+    // node->window->m_position = windowPos;
+    // node->window->m_size = windowSize;
+    
     *node->window->m_realPosition = windowPos;
-    node->window->m_size = windowSize;
     *node->window->m_realSize = windowSize;
   }
 }
@@ -243,3 +244,13 @@ void OverviewLayout::switchWindows(PHLWINDOW pWindowA, PHLWINDOW pWindowB) {}
 void OverviewLayout::alterSplitRatio(PHLWINDOW pWindow, float delta, bool exact) {}
 void OverviewLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {}
 void OverviewLayout::moveWindowTo(PHLWINDOW, const std::string &dir, bool silent) {}
+
+PHLWINDOW OverviewLayout::windowFromCoords(const Vector2D &pos) {
+  for (auto& [window, node] : m_windowNodes) {
+    auto box = CBox(window->m_realPosition->value(), window->m_realSize->value());
+    if (box.containsPoint(pos)) {
+      return window;
+    }
+  }
+  return nullptr;
+}

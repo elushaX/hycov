@@ -9,7 +9,7 @@
 #include <utility>
 
 
-class OverviewLayout : public IHyprLayout {
+class OverviewLayout : public IHyprOverviewLayout {
 
   struct WindowState {
     Vector2D pos;
@@ -43,6 +43,8 @@ public:
   void onEnable() override;
   void onDisable() override;
 
+  PHLWINDOW windowFromCoords(const Vector2D &) override;
+
 public:
   void onWindowCreatedTiling(PHLWINDOW, eDirection direction) override;
   void onWindowRemovedTiling(PHLWINDOW) override;
@@ -71,7 +73,7 @@ private:
   void updateWorkspaces();
 
 public:
-  std::map<CWindow*, OverviewWindowNode> m_windowNodes;
+  std::map<PHLWINDOW, OverviewWindowNode> m_windowNodes;
 
   const int border = 5;
   const int gapIn = 20;

@@ -1,4 +1,7 @@
 /result
-/build
+/*build*
+/*rel*
+/*debug*
+/.idea
 /.vscode
 /.cache
