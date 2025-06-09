@@ -6,7 +6,6 @@ This is the reimplementation of it. <br>
 It has less features for now but a more stable and easy to scale codebase to maintain. <br>
 
 ## Roadmap
-  - dont resize actual windows, just scale the render buffers
   - add several new modes (overview workspace, overview monitor, overview all)
   - add workspaces in overview
   - restore some old features from the original repo
