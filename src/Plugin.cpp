@@ -4,7 +4,8 @@
 #include "DwindleSwitcher.hpp"
 
 #include <src/managers/LayoutManager.hpp>
-#include "src/config/ConfigManager.hpp"
+#include <src/managers/KeybindManager.hpp>
+#include <src/config/ConfigManager.hpp>
 
 PluginState::PluginState(HANDLE _handle) {
   handle = _handle;

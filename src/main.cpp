@@ -45,6 +45,9 @@ PHLWINDOW coordsToWindow(void* self, const Vector2D& pos, uint8_t properties, PH
   }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpmf-conversions"
+
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   gPluginState = new PluginState(handle);
 
@@ -62,6 +65,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 
   return {"overview", "overview mode", "ilusha", "0.0"};
 }
+
+#pragma GCC diagnostic pop
 
 APICALL EXPORT void PLUGIN_EXIT() {
 

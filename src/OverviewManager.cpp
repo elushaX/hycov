@@ -53,16 +53,6 @@ void OverviewManager::toggle() {
   }
 }
 
-void OverviewManager::leaveOverview() {
-  if (!isOverview()) return;
-
-  mCurrentSwitcher->onLeaveOverviewBefore();
-  g_pLayoutManager->switchToLayout(mFallbackLayout->getLayoutName());
-  mCurrentSwitcher->onLeaveOverviewAfter();
-
-  onLastActiveWindow(g_pCompositor->m_lastWindow.lock());
-}
-
 void OverviewManager::enterOverview() {
   if (isOverview()) return;
 
@@ -79,7 +69,7 @@ void OverviewManager::enterOverview() {
     g_pHyprNotificationOverlay->addNotification("Cannot switch in empty overview. Open some windows", CHyprColor(1, 1, 1, 1), 5000);
     return;
   }
-  
+
   mFallbackLayout = g_pLayoutManager->getCurrentLayout();
 
   setCurrentSwitcher(mFallbackLayout->getLayoutName());
@@ -87,6 +77,22 @@ void OverviewManager::enterOverview() {
   mCurrentSwitcher->onEnterOverviewBefore();
   g_pLayoutManager->switchToLayout(mOverviewLayout->getLayoutName());
   mCurrentSwitcher->onEnterOverviewAfter();
+
+  // setup binds
+  g_pKeybindManager->m_dispatchers["submap"]("overview");
+}
+
+void OverviewManager::leaveOverview() {
+  if (!isOverview()) return;
+
+  mCurrentSwitcher->onLeaveOverviewBefore();
+  g_pLayoutManager->switchToLayout(mFallbackLayout->getLayoutName());
+  mCurrentSwitcher->onLeaveOverviewAfter();
+
+  onLastActiveWindow(g_pCompositor->m_lastWindow.lock());
+
+  // reset binds
+  g_pKeybindManager->m_dispatchers["submap"]("reset");
 }
 
 void OverviewManager::onLastActiveWindow(PHLWINDOW windowToFocus) {

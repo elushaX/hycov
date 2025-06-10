@@ -5,21 +5,28 @@ The [original repository](https://github.com/DreamMaoMao/hycov) was archived and
 This is the reimplementation of it. <br>
 It has less features for now but a more stable and easy to scale codebase to maintain. <br>
 
-## Roadmap
-  - add several new modes (overview workspace, overview monitor, overview all)
-  - add workspaces in overview
-  - and restore some old features from the original repo
-
 ## Config
 For now it has only one dispatcher that toggle the overview.
 ```
-bind = SUPER, overview:toggle # also could be overview:enter or overview:leave
+bind = $mainMod, TAB, overview:toggle # also could be overview:enter or overview:leave
 
-#move focus around in overview
-bind = $mainMod, LEFT, overview:left
-bind = $mainMod, RIGHT, overview:right
-bind = $mainMod, UP, overview:up
-bind = $mainMod, DOWN, overview:down
+# binds submap that will automatically activate in overview
+submap = overview
+	# same shortcut as in global submap wont work
+	bind = , ESCAPE, overview:leave
+	bind = , RETURN, overview:leave
+
+  # move focus around
+	bind = , LEFT, overview:left
+	bind = , RIGHT, overview:right
+	bind = , UP, overview:up
+	bind = , DOWN, overview:down
+
+	bind = , a, overview:left
+	bind = , d, overview:right
+	bind = , w, overview:up
+	bind = , s, overview:down
+submap = reset
 
 ```
 
@@ -31,7 +38,12 @@ I tested only manual installation for now:
   - build with cmake and gcc
   - then ```hyprctl plugin load full_path_to.so```
 
-## Known issues
+
+## Known issues & Roadmap
   - currently only for selecting window, closing and opening windows is not support (buggy)
+  - add several new modes (overview workspace, overview monitor, overview all)
+  - add workspaces in overview
+  - and restore some old features from the original repo
+  - dont pass events to windows in overview
   - not tested with window groups
   - glitches with scaling -> render windwos to frame buffers and draw over window in overview
