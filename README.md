@@ -32,5 +32,6 @@ I tested only manual installation for now:
   - then ```hyprctl plugin load full_path_to.so```
 
 ## Known issues
+  - currently only for selecting window, closing and opening windows is not support (buggy)
   - not tested with window groups
   - glitches with scaling -> render windwos to frame buffers and draw over window in overview
