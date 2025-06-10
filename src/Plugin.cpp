@@ -1,6 +1,8 @@
 
 #include "Plugin.hpp"
 
+#include "OverviewLayout.hpp"
+#include "OverviewManager.hpp"
 #include "DwindleSwitcher.hpp"
 
 #include <src/managers/LayoutManager.hpp>

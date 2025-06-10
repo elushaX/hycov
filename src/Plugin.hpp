@@ -1,8 +1,5 @@
 #pragma once
 
-#include "OverviewLayout.hpp"
-#include "OverviewManager.hpp"
-
 #include <hyprland/src/plugins/PluginAPI.hpp>
 
 struct PluginState {
@@ -10,8 +7,8 @@ struct PluginState {
   ~PluginState();
 
   HANDLE handle = nullptr;
-  OverviewLayout* layout = nullptr;
-  OverviewManager* manager = nullptr;
+  class OverviewLayout* layout = nullptr;
+  class OverviewManager* manager = nullptr;
 
   void bind();
 };
