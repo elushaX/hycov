@@ -6,6 +6,7 @@
 #include <hyprland/src/SharedDefs.hpp>
 
 #include <map>
+#include <set>
 #include <utility>
 
 
@@ -35,6 +36,23 @@ class OverviewLayout : public IHyprOverviewLayout {
 
     PHLWINDOW window = nullptr;
     WindowState savedState;
+
+    int column = -1;
+    int row = -1;
+  };
+
+  struct MonitorNode {
+    std::set<PHLWORKSPACE> workspaces;
+    std::vector<OverviewWindowNode*> windows;
+    int prevWorkspaceId = -1;
+
+    int rows = -1;
+    int columns = -1;
+    int numLeftOvers = -1;
+
+    MonitorNode* prevNext[2] = { this, this };
+
+    PHLMONITOR monitor;
   };
 
 public:
@@ -45,12 +63,19 @@ public:
 
   PHLWINDOW windowFromCoords(const Vector2D &) override;
 
+  void moveFocus2D(eDirection dir) override;
+
 public:
+  void addWindow(PHLWINDOW);
+
   void onWindowCreatedTiling(PHLWINDOW, eDirection direction) override;
+  void onWindowCreatedFloating(PHLWINDOW) override;
+  
   void onWindowRemovedTiling(PHLWINDOW) override;
   void onWindowRemoved(PHLWINDOW) override;
 
   void onBeginDragWindow() override;
+  void onMouseMove(const Vector2D&) override;
 
   bool isWindowTiled(PHLWINDOW) override;
   PHLWINDOW getNextWindowCandidate(PHLWINDOW) override;
@@ -69,11 +94,13 @@ public:
 
 private:
   void updateLayout();
-  void calculateOverviewGrid(const std::vector<OverviewWindowNode*>& windows, const PHLWORKSPACE& workspace) const;
-  void updateWorkspaces();
+  void calculateOverviewGrid(MonitorNode* monitorNode, const PHLWORKSPACE& workspace) const;
+  void processWorkspaces();
+  bool isWindowOverviewed(PHLWINDOW window) override;
 
 public:
-  std::map<PHLWINDOW, OverviewWindowNode> m_windowNodes;
+  std::map<PHLMONITOR, MonitorNode> mMonitorNodes;
+  std::map<PHLWINDOW, OverviewWindowNode> mWindowNodes;
 
   const int border = 5;
   const int gapIn = 20;

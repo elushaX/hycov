@@ -6,6 +6,7 @@
 #include "src/managers/LayoutManager.hpp"
 #include "src/render/Renderer.hpp"
 #include "src/Compositor.hpp"
+#include "src/debug/HyprNotificationOverlay.hpp"
 
 std::string OverviewLayout::getLayoutName() { return "grid"; }
 
@@ -34,41 +35,57 @@ OverviewLayout::OverviewLayout(OverviewManager* overviewManager) {
   mOverviewManager = overviewManager;
 }
 
-void OverviewLayout::onEnable() {
-  for (auto &window: g_pCompositor->m_windows) {
-    if (!window->m_isMapped || window->isHidden())
-      continue;
+bool OverviewLayout::isWindowOverviewed(PHLWINDOW window) {
+  if (!window->m_isMapped || window->isHidden())
+    return false;
 
-    if (window->m_workspace->m_isSpecialWorkspace) {
-      continue;
-    }
-
-    onWindowCreatedTiling(window, DIRECTION_DEFAULT);
+  if (window->m_workspace->m_isSpecialWorkspace) {
+    return false;
   }
 
-  updateWorkspaces();
+  return true;
 }
 
-void OverviewLayout::updateWorkspaces() {
-  std::map<PHLMONITOR, std::set<PHLWORKSPACE>> activeMonitorMap;
+void OverviewLayout::onEnable() {
+  for (auto &window: g_pCompositor->m_windows) {
+    if (isWindowOverviewed(window)) {
+      onWindowCreated(window, DIRECTION_DEFAULT);
+    }
+  }
 
-  for (auto& node : m_windowNodes) {
+  processWorkspaces();
+}
+
+void OverviewLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
+  addWindow(window);
+}
+
+void OverviewLayout::onWindowCreatedFloating(PHLWINDOW window) {
+  addWindow(window);
+}
+
+void OverviewLayout::addWindow(PHLWINDOW window) {
+  if (mWindowNodes.contains(window)) return;
+
+  auto newNode = OverviewWindowNode(window);
+  mWindowNodes.insert({window, newNode });
+
+  updateLayout();
+}
+
+void OverviewLayout::processWorkspaces() {
+  for (auto& node : mWindowNodes) {
     if (!node.second.window->m_workspace->m_isSpecialWorkspace) {
-      activeMonitorMap[node.second.window->m_monitor.lock()].insert(node.second.window->m_workspace);
+      mMonitorNodes[node.second.window->m_monitor.lock()].workspaces.insert(node.second.window->m_workspace);
     }
   }
 
-  auto underCursorWorkspace = g_pCompositor->getMonitorFromCursor()->m_activeWorkspace;
-  for (auto& monitor : activeMonitorMap) {
-    if (monitor.second.contains(underCursorWorkspace)) {
-      monitor.first->changeWorkspace(underCursorWorkspace);
-    } else {
-      monitor.first->changeWorkspace(*monitor.second.begin());
-    }
-    monitor.first->setSpecialWorkspace(nullptr);
+  for (auto& [monitor, node] : mMonitorNodes) {
+    monitor->setSpecialWorkspace(nullptr);
+    node.monitor = monitor;
   }
 
-  for (auto& node : m_windowNodes) {
+  for (auto& node : mWindowNodes) {
     auto monitor = node.second.window->m_monitor;
     auto workspace = monitor->m_activeWorkspace;
 
@@ -80,7 +97,8 @@ void OverviewLayout::updateWorkspaces() {
 
 void OverviewLayout::onDisable() {
 
-  for (auto& [window, node] : m_windowNodes) {
+  // restore windows
+  for (auto& [window, node] : mWindowNodes) {
     auto monitor = g_pCompositor->getMonitorFromID(node.savedState.monitorId);
     auto workspace = g_pCompositor->getWorkspaceByID(node.savedState.workspaceId);
 
@@ -100,7 +118,8 @@ void OverviewLayout::onDisable() {
     window->m_isFloating = node.savedState.floating;
   }
 
-  m_windowNodes.clear();
+  mMonitorNodes.clear();
+  mWindowNodes.clear();
 }
 
 void OverviewLayout::onWindowRemoved(PHLWINDOW pWindow) {
@@ -108,7 +127,7 @@ void OverviewLayout::onWindowRemoved(PHLWINDOW pWindow) {
 }
 
 void OverviewLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
-  m_windowNodes.erase(pWindow);
+  mWindowNodes.erase(pWindow);
   updateLayout();
 }
 
@@ -116,15 +135,27 @@ void OverviewLayout::updateLayout() {
   for (auto &monitor: g_pCompositor->m_monitors) {
     recalculateMonitor(monitor->m_id);
   }
-}
 
-void OverviewLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
-  if (m_windowNodes.contains(window)) return;
+  // link monitors into circle
+  {
+    std::vector<std::pair<int, PHLMONITOR>> monitorOrder;
 
-  auto newNode = OverviewWindowNode(window);
-  m_windowNodes.insert({ window, newNode });
+    for (auto &monitor: g_pCompositor->m_monitors) {
+      monitorOrder.emplace_back(monitor->m_position.x, monitor);
+    }
 
-  updateLayout();
+    std::sort(monitorOrder.begin(), monitorOrder.end(), [](auto a, auto b) { return a.first > b.first; });
+
+    for (size_t idx = 0; idx < monitorOrder.size() - 1; idx++) {
+      mMonitorNodes[monitorOrder[idx].second].prevNext[1] = &mMonitorNodes[monitorOrder[idx + 1].second];
+      mMonitorNodes[monitorOrder[idx + 1].second].prevNext[0] = &mMonitorNodes[monitorOrder[idx].second];
+    }
+
+    if (monitorOrder.size() > 1) {
+      mMonitorNodes[monitorOrder.back().second].prevNext[1] = &mMonitorNodes[monitorOrder.front().second];
+      mMonitorNodes[monitorOrder.front().second].prevNext[0] = &mMonitorNodes[monitorOrder.back().second];
+    }
+  }
 }
 
 void OverviewLayout::recalculateMonitor(const MONITORID &monitorId) {
@@ -134,18 +165,18 @@ void OverviewLayout::recalculateMonitor(const MONITORID &monitorId) {
     return;
   }
 
-  std::vector<OverviewWindowNode*> nodes;
-  for (auto& node : m_windowNodes) {
+  mMonitorNodes[monitor].windows.clear();
+  for (auto& node : mWindowNodes) {
     if (node.second.window->monitorID() == monitorId) {
-      nodes.push_back(&node.second);
+      mMonitorNodes[monitor].windows.push_back(&node.second);
     }
   }
 
-  calculateOverviewGrid(nodes, g_pCompositor->getWorkspaceByID(monitor->activeWorkspaceID()));
+  calculateOverviewGrid(&mMonitorNodes[monitor], g_pCompositor->getWorkspaceByID(monitor->activeWorkspaceID()));
 }
 
-void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*>& windows, const PHLWORKSPACE& workspace) const {
-  if (windows.empty()) {
+void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWORKSPACE& workspace) const {
+  if (monitorNode->windows.empty()) {
     return;
   }
 
@@ -156,7 +187,7 @@ void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*
   auto monitorW = (int) (monitor->m_size.x - monitor->m_reservedTopLeft.x);
   auto monitorH = (int) (monitor->m_size.y - monitor->m_reservedTopLeft.y);
 
-  auto numNodes = (int) windows.size();
+  auto numNodes = (int) monitorNode->windows.size();
 
   // Calculate the integer part of the square root of the number of nodes
   int columns = 0;
@@ -183,10 +214,13 @@ void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*
   }
 
   for (int i = 0; i < numNodes; i++) {
-    auto node = windows[i];
+    auto node = monitorNode->windows[i];
 
-    int posX = monitorX + (i % columns) * (width + gapIn) + gapOut;
-    int posY = monitorY + (int) (i / columns) * (height + gapIn) + gapOut;
+    int column = i % columns;
+    int row = i / columns;
+
+    int posX = monitorX + (column) * (width + gapIn) + gapOut;
+    int posY = monitorY + (int) (row) * (height + gapIn) + gapOut;
 
     if (i >= numNodes - numLeftOvers) {
       posX += leftOversOffsetX;
@@ -220,17 +254,126 @@ void OverviewLayout::calculateOverviewGrid(const std::vector<OverviewWindowNode*
     
     *node->window->m_realPosition = windowPos;
     *node->window->m_realSize = windowSize;
+
+    node->column = column;
+    node->row = row;
+  }
+
+  monitorNode->numLeftOvers = numLeftOvers;
+  monitorNode->rows = rows;
+  monitorNode->columns = columns;
+}
+
+void OverviewLayout::moveFocus2D(eDirection dir) {
+  PHLWINDOW window = g_pCompositor->m_lastWindow.lock();
+  auto monitor = window->m_workspace->m_monitor;
+
+  if (!mWindowNodes.contains(window)) return;
+  auto& windowNode = mWindowNodes.at(window);
+  auto& currentMonitor = mMonitorNodes.at(monitor.lock());
+
+  int col = windowNode.column;
+  int row = windowNode.row;
+
+  switch (dir) {
+    case DIRECTION_UP: row--; break;
+    case DIRECTION_DOWN: row++; break;
+    case DIRECTION_RIGHT: col++; break;
+    case DIRECTION_LEFT: col--; break;
+    default:
+      return;
+  }
+
+  if (currentMonitor.numLeftOvers && row == currentMonitor.rows - 1) {
+    if (dir == DIRECTION_DOWN) {
+      if (col > currentMonitor.numLeftOvers - 1) {
+        col = currentMonitor.numLeftOvers - 1;
+      }
+    }
+  }
+
+  auto overflowDirection = [](MonitorNode* node, int x, int y) {
+    if (x < 0) return DIRECTION_LEFT;
+    if (x > node->columns - 1) return DIRECTION_RIGHT;
+    if (y < 0) return DIRECTION_UP;
+    if (y > node->rows - 1) return DIRECTION_DOWN;
+
+    if (node->numLeftOvers && y == node->columns - 1) {
+      if (x > node->numLeftOvers - 1) return DIRECTION_RIGHT;
+    }
+
+    return DIRECTION_DEFAULT;
+  };
+
+  auto indexFromOverflow = [](MonitorNode *node, int x, int y, eDirection dir) {
+    std::pair<int, int> idx = {x, y};
+
+    if (dir == DIRECTION_DEFAULT) return idx;
+
+    if (idx.first > node->columns - 1) idx.first = 0;
+    if (idx.first < 0) idx.first = node->columns - 1;
+
+    if (idx.second > node->rows - 1) idx.second = 0;
+    if (idx.second < 0) idx.second = node->rows - 1;
+
+    if (node->numLeftOvers && idx.second == node->columns - 1) {
+      if (idx.first > node->numLeftOvers - 1) idx.first = node->numLeftOvers - 1;
+    }
+
+    return idx;
+  };
+
+  auto getOverflowMonitor = [](eDirection dir, MonitorNode* current){
+    if (!(dir == DIRECTION_LEFT || dir == DIRECTION_RIGHT)) return (MonitorNode*)nullptr;
+
+    // g_pHyprNotificationOverlay->addNotification(std::to_string(dir), CHyprColor(1, 1, 1, 1), 5000);
+
+    int nextPrev = int(dir == DIRECTION_LEFT);
+    MonitorNode* monitorToSwitch = current->prevNext[nextPrev];
+    while (monitorToSwitch->windows.empty() && monitorToSwitch->prevNext[nextPrev] != monitorToSwitch) {
+      monitorToSwitch = monitorToSwitch->prevNext[nextPrev];
+    }
+
+    // g_pHyprNotificationOverlay->addNotification(monitorToSwitch->monitor->m_name, CHyprColor(1, 1, 1, 1), 5000);
+
+    return current == monitorToSwitch ? nullptr : monitorToSwitch;
+  };
+
+  auto switchToIndex = [](MonitorNode* monitor, std::pair<int, int> idx) {
+    for (auto* node : monitor->windows) {
+      if (node->column == idx.first && node->row == idx.second) {
+        g_pCompositor->focusWindow(node->window);
+        break;
+      }
+    }
+  };
+
+  auto overflowDir = overflowDirection(&currentMonitor, col, row);
+  auto overflowMonitor = getOverflowMonitor(overflowDir, &currentMonitor);
+
+  if (overflowMonitor) {
+    
+    auto adjustedCol = overflowDir == DIRECTION_LEFT ? overflowMonitor->columns - 1 : 0;
+    auto idx = indexFromOverflow(overflowMonitor, adjustedCol, 0, overflowDir);
+    switchToIndex(overflowMonitor, idx);
+  } else {
+    auto idx = indexFromOverflow(&currentMonitor, col, row, overflowDir);
+    switchToIndex(&currentMonitor, idx);
   }
 }
 
 PHLWINDOW OverviewLayout::getNextWindowCandidate(PHLWINDOW) {
-  if (!m_windowNodes.empty())
-    return m_windowNodes.begin()->second.window;
+  if (!mWindowNodes.empty())
+    return mWindowNodes.begin()->second.window;
   return nullptr;
 }
 
 void OverviewLayout::onBeginDragWindow() {
   mOverviewManager->leaveOverview();
+}
+
+void OverviewLayout::onMouseMove(const Vector2D& pos) {
+  mWindowUnderCursor = windowFromCoords(pos);
 }
 
 Vector2D OverviewLayout::predictSizeForNewWindowTiled() { return {}; }
@@ -246,7 +389,7 @@ void OverviewLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to) {}
 void OverviewLayout::moveWindowTo(PHLWINDOW, const std::string &dir, bool silent) {}
 
 PHLWINDOW OverviewLayout::windowFromCoords(const Vector2D &pos) {
-  for (auto& [window, node] : m_windowNodes) {
+  for (auto& [window, node] : mWindowNodes) {
     auto box = CBox(window->m_realPosition->value(), window->m_realSize->value());
     if (box.containsPoint(pos)) {
       return window;

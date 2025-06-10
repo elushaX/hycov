@@ -19,7 +19,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 }
 
 static void mouseButtonHook(void* self, IPointer::SButtonEvent buttonEvent) {
-  if (gPluginState->manager->isOverview()) {
+  if (gPluginState->manager->isOverview() && gPluginState->manager->windowUnderCursor() != nullptr) {
     if (buttonEvent.button == BTN_LEFT ) {
       gPluginState->manager->leaveOverview();
     }

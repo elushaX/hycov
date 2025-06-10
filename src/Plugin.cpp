@@ -27,4 +27,34 @@ void PluginState::bind() {
     manager->toggle();
     return SDispatchResult();
   });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:enter", [this](const std::string&){
+    manager->enterOverview();
+    return SDispatchResult();
+  });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:leave", [this](const std::string&){
+    manager->leaveOverview();
+    return SDispatchResult();
+  });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:up", [this](const std::string&){
+    manager->getOverview()->moveFocus2D(DIRECTION_UP);
+    return SDispatchResult();
+  });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:down", [this](const std::string&){
+    manager->getOverview()->moveFocus2D(DIRECTION_DOWN);
+    return SDispatchResult();
+  });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:left", [this](const std::string&){
+    manager->getOverview()->moveFocus2D(DIRECTION_LEFT);
+    return SDispatchResult();
+  });
+
+  HyprlandAPI::addDispatcherV2(handle, "overview:right", [this](const std::string&){
+    manager->getOverview()->moveFocus2D(DIRECTION_RIGHT);
+    return SDispatchResult();
+  });
 }

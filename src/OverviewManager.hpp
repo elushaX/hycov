@@ -10,6 +10,11 @@ public:
   IHyprOverviewLayout() = default;
 
   virtual PHLWINDOW windowFromCoords(const Vector2D&) = 0;
+  virtual void moveFocus2D(eDirection dir) = 0;
+  virtual bool isWindowOverviewed(PHLWINDOW window) = 0;
+
+public:
+  PHLWINDOW mWindowUnderCursor;
 };
 
 struct LayoutSwitcher {
@@ -32,7 +37,10 @@ public:
   bool isOverview();
 
   PHLWINDOW windowFromCoords(const Vector2D& pos);
+  PHLWINDOW windowUnderCursor();
 
+  IHyprOverviewLayout* getOverview();
+  
 public:
   void leaveOverview();
   void enterOverview();

@@ -64,6 +64,7 @@ void DwindleSwitcher::onLeaveOverviewAfter() {
 
     for (auto& node : context->layout->m_dwindleNodesData) {
       context->layout->applyNodeDataToWindow(&node);
+      context->layout->recalculateWindow(node.pWindow.lock());
     }
   }
 
