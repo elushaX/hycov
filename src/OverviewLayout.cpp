@@ -156,6 +156,8 @@ void OverviewLayout::updateLayout() {
       mMonitorNodes[monitorOrder.front().second].prevNext[0] = &mMonitorNodes[monitorOrder.back().second];
     }
   }
+
+  scaleActiveWindow();
 }
 
 void OverviewLayout::recalculateMonitor(const MONITORID &monitorId) {
@@ -248,6 +250,9 @@ void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWO
         }
       }
     // }
+
+    node->overviewSize = windowSize;
+    node->overviewPos = windowPos;
 
     // node->window->m_position = windowPos;
     // node->window->m_size = windowSize;
@@ -352,7 +357,6 @@ void OverviewLayout::moveFocus2D(eDirection dir) {
   auto overflowMonitor = getOverflowMonitor(overflowDir, &currentMonitor);
 
   if (overflowMonitor) {
-    
     auto adjustedCol = overflowDir == DIRECTION_LEFT ? overflowMonitor->columns - 1 : 0;
     auto idx = indexFromOverflow(overflowMonitor, adjustedCol, 0, overflowDir);
     switchToIndex(overflowMonitor, idx);
@@ -360,6 +364,8 @@ void OverviewLayout::moveFocus2D(eDirection dir) {
     auto idx = indexFromOverflow(&currentMonitor, col, row, overflowDir);
     switchToIndex(&currentMonitor, idx);
   }
+
+  scaleActiveWindow();
 }
 
 PHLWINDOW OverviewLayout::getNextWindowCandidate(PHLWINDOW) {
@@ -374,6 +380,17 @@ void OverviewLayout::onBeginDragWindow() {
 
 void OverviewLayout::onMouseMove(const Vector2D& pos) {
   mWindowUnderCursor = windowFromCoords(pos);
+
+  scaleActiveWindow();
+}
+
+void OverviewLayout::scaleActiveWindow() {
+  for (auto& [window, node] : mWindowNodes) {
+    auto increment = g_pCompositor->m_lastWindow == window ? mFocusIncrement : 0;
+    auto incrementVec = Vector2D(increment, increment);
+    *window->m_realSize = node.overviewSize + incrementVec * 2;
+    *window->m_realPosition = node.overviewPos - incrementVec;
+  }
 }
 
 Vector2D OverviewLayout::predictSizeForNewWindowTiled() { return {}; }

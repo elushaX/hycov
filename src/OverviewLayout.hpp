@@ -39,6 +39,9 @@ class OverviewLayout : public IHyprOverviewLayout {
 
     int column = -1;
     int row = -1;
+
+    Vector2D overviewPos;
+    Vector2D overviewSize;
   };
 
   struct MonitorNode {
@@ -97,14 +100,16 @@ private:
   void calculateOverviewGrid(MonitorNode* monitorNode, const PHLWORKSPACE& workspace) const;
   void processWorkspaces();
   bool isWindowOverviewed(PHLWINDOW window) override;
+  void scaleActiveWindow();
 
 public:
   std::map<PHLMONITOR, MonitorNode> mMonitorNodes;
   std::map<PHLWINDOW, OverviewWindowNode> mWindowNodes;
 
   const int border = 5;
-  const int gapIn = 20;
-  const int gapOut = 150;
+  const int gapIn = 40;
+  const int gapOut = 100;
+  const int mFocusIncrement = 17;
 
 private:
   OverviewManager* mOverviewManager = nullptr;
