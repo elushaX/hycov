@@ -2,13 +2,15 @@
 
 #include "OverviewLayout.hpp"
 #include "OverviewManager.hpp"
+#include "OverviewRenderPass.hpp"
 
-#include <src/devices/IPointer.hpp>
-#include <src/desktop/Window.hpp>
-#include <src/Compositor.hpp>
+#include <hyprland/src/devices/IPointer.hpp>
+#include <hyprland/src/desktop/Window.hpp>
+#include <hyprland/src/Compositor.hpp>
 
 #define private public
-#include <src/managers/input/InputManager.hpp>
+#include <hyprland/src/render/Renderer.hpp>
+#include <hyprland/src/managers/input/InputManager.hpp>
 #undef private
 
 typedef void (*CInputManager_onMouseButton)(void* , IPointer::SButtonEvent e);
@@ -21,6 +23,7 @@ static CFunctionHook* mouseHook = nullptr;
 static CFunctionHook* mouseMoveHook = nullptr;
 static CFunctionHook* reportSizeHook = nullptr;
 static CFunctionHook* coordsToWindowHook = nullptr;
+static CFunctionHook* renderWorkspaceHook = nullptr;
 
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
   return HYPRLAND_API_VERSION;
@@ -63,7 +66,7 @@ void onMouseMoved(void* self, uint32_t val, bool refocus, bool mouse) {
   Vector2D currentPos = g_pInputManager->getMouseCoordsInternal();;
   auto delta = currentPos - lastPos;
 
-  Debug::log(LOG, "OVR: " + std::to_string(currentPos.y) + "  " + std::to_string(delta.y));
+  // Debug::log(LOG, "OVR: " + std::to_string(currentPos.y) + "  " + std::to_string(delta.y));
 
   if (cooldown) {
     if (currentPos.y > mHotAreaHeight) {
@@ -81,15 +84,27 @@ void onMouseMoved(void* self, uint32_t val, bool refocus, bool mouse) {
   (*(CInputManager_mouseMoveUnified)mouseMoveHook->m_original)(self, val, refocus, mouse);
 }
 
+static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
+  typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, const CBox&);
+  ((origRenderWorkspace)(renderWorkspaceHook->m_original))(thisptr, pMonitor, pWorkspace, now, geometry);
+  g_pHyprRenderer->m_renderPass.add(makeShared<OverviewRenderPass>(gPluginState));
+}
+
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
 
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
+
+  if (const std::string HASH = __hyprland_api_get_hash(); HASH != GIT_COMMIT_HASH) {
+    // failNotif("Version mismatch (headers ver is not equal to running hyprland ver)");
+    // throw std::runtime_error("[hycov] API Version mismatch");
+    return {"overview", "overview mode", "ilusha", "0.0"};
+  }
+
   gPluginState = new PluginState(handle);
 
-  gPluginState->bind();
-
-  // TODO: use this instead 
+  // TODO: use this instead
   // mouseMoveHook = g_pHookSystem->hookDynamic("mouseMove", onCursorMove);
 
   // selecting with mouse
@@ -106,16 +121,22 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   reportSizeHook->hook();
   coordsToWindowHook->hook();
 
+  // additional rendering
+  renderWorkspaceHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CHyprRenderer::renderWorkspace, (void*)hkRenderWorkspace);
+  renderWorkspaceHook->hook();
+
   return {"overview", "overview mode", "ilusha", "0.0"};
 }
 
 #pragma GCC diagnostic pop
 
 APICALL EXPORT void PLUGIN_EXIT() {
+  if (!gPluginState) return;
 
   mouseHook->unhook();
   reportSizeHook->unhook();
   mouseMoveHook->unhook();
+  renderWorkspaceHook->unhook();
 
   delete gPluginState;
 }

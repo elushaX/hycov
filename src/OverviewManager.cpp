@@ -1,11 +1,12 @@
 #include "OverviewManager.hpp"
+#include "RenderUtils.hpp"
 
 #include <utility>
 
-#include "src/Compositor.hpp"
-#include "src/managers/LayoutManager.hpp"
-#include "src/render/Renderer.hpp"
-#include "src/debug/HyprNotificationOverlay.hpp"
+#include "hyprland/src/Compositor.hpp"
+#include "hyprland/src/managers/LayoutManager.hpp"
+#include "hyprland/src/render/Renderer.hpp"
+#include "hyprland/src/debug/HyprNotificationOverlay.hpp"
 
 void LayoutSwitcher::onEnterOverviewBefore() {
   for (auto& window : g_pCompositor->m_windows) {
@@ -61,7 +62,9 @@ void OverviewManager::enterOverview() {
   for (auto &window: g_pCompositor->m_windows) {
     if (mOverviewLayout->isWindowOverviewed(window)) {
       hasWindows = true;
-      break;
+
+      // needed for overview render pass
+      makeWindowSnapshotMinimal(g_pHyprRenderer.get(), window);
     }
   }
 

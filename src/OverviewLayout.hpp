@@ -7,8 +7,6 @@
 
 #include <map>
 #include <set>
-#include <utility>
-
 
 class OverviewLayout : public IHyprOverviewLayout {
 
@@ -46,6 +44,8 @@ class OverviewLayout : public IHyprOverviewLayout {
 
   struct MonitorNode {
     std::set<PHLWORKSPACE> workspaces;
+    PHLWORKSPACE active;
+
     std::vector<OverviewWindowNode*> windows;
     int prevWorkspaceId = -1;
 
@@ -67,6 +67,8 @@ public:
   PHLWINDOW windowFromCoords(const Vector2D &) override;
 
   void moveFocus2D(eDirection dir) override;
+
+  bool hasWindow(const PHLWINDOW& window) override;
 
 public:
   void addWindow(PHLWINDOW);

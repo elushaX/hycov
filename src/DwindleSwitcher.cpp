@@ -4,11 +4,11 @@
 #include <cassert>
 
 #define private public
-#include "src/managers/LayoutManager.hpp"
+#include "hyprland/src/managers/LayoutManager.hpp"
 #undef private
 
-#include "src/Compositor.hpp"
-#include "src/helpers/Monitor.hpp"
+#include "hyprland/src/Compositor.hpp"
+#include "hyprland/src/helpers/Monitor.hpp"
 
 #include <set>
 

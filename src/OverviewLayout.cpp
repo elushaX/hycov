@@ -1,12 +1,12 @@
 
 #include "OverviewLayout.hpp"
 
-#include "src/desktop/Workspace.hpp"
-#include "src/helpers/Monitor.hpp"
-#include "src/managers/LayoutManager.hpp"
-#include "src/render/Renderer.hpp"
-#include "src/Compositor.hpp"
-#include "src/debug/HyprNotificationOverlay.hpp"
+#include "hyprland/src/desktop/Workspace.hpp"
+#include "hyprland/src/helpers/Monitor.hpp"
+#include "hyprland/src/managers/LayoutManager.hpp"
+#include "hyprland/src/render/Renderer.hpp"
+#include "hyprland/src/Compositor.hpp"
+#include "hyprland/src/debug/HyprNotificationOverlay.hpp"
 
 std::string OverviewLayout::getLayoutName() { return "grid"; }
 
@@ -366,6 +366,10 @@ void OverviewLayout::moveFocus2D(eDirection dir) {
   }
 
   scaleActiveWindow();
+}
+
+bool OverviewLayout::hasWindow(const PHLWINDOW& window) {
+  return mWindowNodes.contains(window);
 }
 
 PHLWINDOW OverviewLayout::getNextWindowCandidate(PHLWINDOW) {
