@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/layout/IHyprLayout.hpp"
+#include "hyprland/src/layout/IHyprLayout.hpp"
 
 #include <map>
 #include <memory>
@@ -12,6 +12,7 @@ public:
   virtual PHLWINDOW windowFromCoords(const Vector2D&) = 0;
   virtual void moveFocus2D(eDirection dir) = 0;
   virtual bool isWindowOverviewed(PHLWINDOW window) = 0;
+  virtual bool hasWindow(const PHLWINDOW& window) = 0;
 
 public:
   PHLWINDOW mWindowUnderCursor;

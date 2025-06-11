@@ -9,6 +9,4 @@ struct PluginState {
   HANDLE handle = nullptr;
   class OverviewLayout* layout = nullptr;
   class OverviewManager* manager = nullptr;
-
-  void bind();
 };
