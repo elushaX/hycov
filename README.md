@@ -40,13 +40,12 @@ I tested only manual installation for now:
 
 
 ## Known issues 
-  - currently only for selecting window, closing and opening windows is not support (buggy)
-  - dont pass events to windows in overview
+  - currently only for selecting window, closing and opening windows is not support
   - not tested with window groups
-  - glitches with scaling -> render windwos to frame buffers and draw over window in overview
   - cannot set same bind in 'reset' and 'overview' submaps
 
 ## Roadmap
   - add several new modes (overview workspace, overview monitor, overview all)
   - add workspaces in overview
-  - and restore some old features from the original repo
+  - add dispatcher to enter fullscreen on window selection
+  - add 'hide window' functionality

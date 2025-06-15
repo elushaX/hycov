@@ -11,6 +11,9 @@ void renderWindowAtOrigin(CHyprRenderer* pRenderer, PHLWINDOW pWindow, CFramebuf
     if (!PMONITOR)
         return;
 
+    auto oldMonitorPos = PMONITOR->m_position;
+    PMONITOR->m_position = { 0, 0 };
+
     pRenderer->makeEGLCurrent();
 
     const auto windowSize = pWindow->m_realSize->value();
@@ -52,6 +55,8 @@ void renderWindowAtOrigin(CHyprRenderer* pRenderer, PHLWINDOW pWindow, CFramebuf
     pRenderer->endRender();
 
     pRenderer->m_bRenderingSnapshot = false;
+
+    PMONITOR->m_position = oldMonitorPos;
 }
 
 void makeWindowSnapshotMinimal(CHyprRenderer* pRenderer, PHLWINDOW pWindow) {

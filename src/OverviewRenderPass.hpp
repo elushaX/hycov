@@ -8,7 +8,7 @@ class COverview;
 
 class OverviewRenderPass : public IPassElement {
 public:
-  explicit OverviewRenderPass(PluginState* plugin);
+  explicit OverviewRenderPass(PluginState* plugin, PHLWINDOW window);
 
   virtual ~OverviewRenderPass() = default;
 
@@ -29,5 +29,6 @@ public:
   }
 
 private:
+  PHLWINDOW mWindow;
   PluginState* mPlugin;
 };

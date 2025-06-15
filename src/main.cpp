@@ -23,7 +23,9 @@ static CFunctionHook* mouseHook = nullptr;
 static CFunctionHook* mouseMoveHook = nullptr;
 static CFunctionHook* reportSizeHook = nullptr;
 static CFunctionHook* coordsToWindowHook = nullptr;
-static CFunctionHook* renderWorkspaceHook = nullptr;
+static CFunctionHook* renderWindowHook = nullptr;
+static CFunctionHook* onKeyboardHook = nullptr;
+static CFunctionHook* sendWindowSizeHook = nullptr;
 
 APICALL EXPORT std::string PLUGIN_API_VERSION() {
   return HYPRLAND_API_VERSION;
@@ -46,6 +48,15 @@ static Vector2D realToReportSize(void* self) {
   } else { 
     return (*(CWindow_realToReportSize)reportSizeHook->m_original)(self);
   }
+}
+
+static void sendWindowSize(void* self, bool force) {
+  if (gPluginState->manager->isOverview()) {
+    return;
+  }
+
+  typedef void (*Function)(void*, bool force);
+  (*(Function)sendWindowSizeHook->m_original)(self, force);
 }
 
 PHLWINDOW coordsToWindow(void* self, const Vector2D& pos, uint8_t properties, PHLWINDOW pIgnoreWindow) {
@@ -84,10 +95,26 @@ void onMouseMoved(void* self, uint32_t val, bool refocus, bool mouse) {
   (*(CInputManager_mouseMoveUnified)mouseMoveHook->m_original)(self, val, refocus, mouse);
 }
 
-static void hkRenderWorkspace(void* thisptr, PHLMONITOR pMonitor, PHLWORKSPACE pWorkspace, timespec* now, const CBox& geometry) {
-  typedef void (*origRenderWorkspace)(void*, PHLMONITOR, PHLWORKSPACE, timespec*, const CBox&);
-  ((origRenderWorkspace)(renderWorkspaceHook->m_original))(thisptr, pMonitor, pWorkspace, now, geometry);
-  g_pHyprRenderer->m_renderPass.add(makeShared<OverviewRenderPass>(gPluginState));
+static void hkRenderWindow(void* thisptr, PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone) {
+  typedef void (*Function)(void*, PHLWINDOW pWindow, PHLMONITOR pMonitor, const Time::steady_tp& time, bool decorate, eRenderPassMode mode, bool ignorePosition, bool standalone);
+  ((Function)(renderWindowHook->m_original))(thisptr, pWindow, pMonitor, time, decorate, mode, ignorePosition, standalone);
+  g_pHyprRenderer->m_renderPass.add(makeShared<OverviewRenderPass>(gPluginState, pWindow));
+}
+
+static void hkOnKeyboard(void* thisptr, std::any event, SP<IKeyboard> pKeyboard) {
+  if (!gPluginState->manager->isOverview()) {
+    typedef void (*Function)(void*, std::any event, SP<IKeyboard> pKeyboard);
+    ((Function)(onKeyboardHook->m_original))(thisptr, event, pKeyboard);
+    return;
+  }
+
+  // if (!g_pInputManager->pKeyboard->m_enabled)
+  //  return;
+
+  // const auto EMAP = std::unordered_map<std::string, std::any>{{"keyboard", pKeyboard}, {"event", event}};
+  // EMIT_HOOK_EVENT_CANCELLABLE("keyPress", EMAP);
+
+  g_pKeybindManager->onKeyEvent(event, pKeyboard);
 }
 
 
@@ -107,23 +134,27 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   // TODO: use this instead
   // mouseMoveHook = g_pHookSystem->hookDynamic("mouseMove", onCursorMove);
 
-  // selecting with mouse
+  // input handling
   mouseHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CInputManager::onMouseButton, (void*)&mouseButtonHook);
+  onKeyboardHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CInputManager::onKeyboardKey, (void*)&hkOnKeyboard);
   mouseHook->hook();
+  onKeyboardHook->hook();
   
   // hot corners
   mouseMoveHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CInputManager::mouseMoveUnified, (void*)&onMouseMoved);
   mouseMoveHook->hook();
 
   // window scaling
+  sendWindowSizeHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CWindow::sendWindowSize, (void*)&sendWindowSize);
   reportSizeHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CWindow::realToReportSize, (void*)&realToReportSize);
   coordsToWindowHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CCompositor::vectorToWindowUnified, (void*)(&coordsToWindow));
   reportSizeHook->hook();
   coordsToWindowHook->hook();
+  sendWindowSizeHook->hook();
 
-  // additional rendering
-  renderWorkspaceHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CHyprRenderer::renderWorkspace, (void*)hkRenderWorkspace);
-  renderWorkspaceHook->hook();
+  // window rendering in overview
+  renderWindowHook = HyprlandAPI::createFunctionHook(gPluginState->handle, (void*)&CHyprRenderer::renderWindow, (void*)hkRenderWindow);
+  renderWindowHook->hook();
 
   return {"overview", "overview mode", "ilusha", "0.0"};
 }
@@ -133,10 +164,12 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 APICALL EXPORT void PLUGIN_EXIT() {
   if (!gPluginState) return;
 
+  onKeyboardHook->unhook();
   mouseHook->unhook();
   reportSizeHook->unhook();
   mouseMoveHook->unhook();
-  renderWorkspaceHook->unhook();
+  renderWindowHook->unhook();
+  sendWindowSizeHook->unhook();
 
   delete gPluginState;
 }

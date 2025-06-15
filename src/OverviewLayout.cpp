@@ -18,7 +18,6 @@ OverviewLayout::OverviewWindowNode::OverviewWindowNode(PHLWINDOW  window_) {
 
   savedState.pos = window->m_position;
   savedState.size = window->m_size;
-  savedState.ratio = (float) (savedState.size.y / savedState.size.x);
 
   savedState.posReal = window->m_realPosition->goal();
   savedState.sizeReal = window->m_realSize->goal();
@@ -27,8 +26,10 @@ OverviewLayout::OverviewWindowNode::OverviewWindowNode(PHLWINDOW  window_) {
 
   if (savedState.size.x == 0 || savedState.size.y == 0) {
     savedState.size = savedState.sizeReal;
-    savedState.size.clamp({10, 10});
+    savedState.size = savedState.size.clamp({10, 10});
   }
+
+  savedState.ratio = (float) (savedState.size.y / savedState.size.x);
 }
 
 OverviewLayout::OverviewLayout(OverviewManager* overviewManager) {
@@ -270,7 +271,14 @@ void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWO
 }
 
 void OverviewLayout::moveFocus2D(eDirection dir) {
+  if (mWindowNodes.empty())
+    return;
+
   PHLWINDOW window = g_pCompositor->m_lastWindow.lock();
+
+  if (!window)
+    window = mWindowNodes.begin()->second.window;
+
   auto monitor = window->m_workspace->m_monitor;
 
   if (!mWindowNodes.contains(window)) return;
@@ -391,7 +399,15 @@ void OverviewLayout::onMouseMove(const Vector2D& pos) {
 void OverviewLayout::scaleActiveWindow() {
   for (auto& [window, node] : mWindowNodes) {
     auto increment = g_pCompositor->m_lastWindow == window ? mFocusIncrement : 0;
-    auto incrementVec = Vector2D(increment, increment);
+
+    Vector2D incrementVec = Vector2D(increment, increment);
+
+    if (node.savedState.ratio > 1) {
+      incrementVec.x /= node.savedState.ratio;
+    } else {
+      incrementVec.y *= node.savedState.ratio;
+    }
+
     *window->m_realSize = node.overviewSize + incrementVec * 2;
     *window->m_realPosition = node.overviewPos - incrementVec;
   }

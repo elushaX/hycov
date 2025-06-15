@@ -5,33 +5,31 @@
 #include "OverviewManager.hpp"
 #include "hyprland/src/Compositor.hpp"
 
-auto box = CBox{0, 0, 100, 100};
-
-OverviewRenderPass::OverviewRenderPass(PluginState *plugin) {
+OverviewRenderPass::OverviewRenderPass(PluginState *plugin, PHLWINDOW window) {
     mPlugin = plugin;
+    mWindow = window;
 }
 
 void OverviewRenderPass::draw(const CRegion &damage) {
-    if (!mPlugin->manager->isOverview()) return;
+    if (!mPlugin->manager->getOverview()->hasWindow(mWindow)) return;
 
-    g_pHyprOpenGL->clear(CHyprColor(0, 0, 0, 1));
+    PHLWINDOWREF windowRef{mWindow};
 
-    for (const auto& window : g_pCompositor->m_windows) {
-        if (!mPlugin->manager->getOverview()->hasWindow(window)) continue;
-        PHLWINDOWREF windowRef{ window };
+    auto& buffers = g_pHyprOpenGL->m_windowFramebuffers;
 
-        auto& buffers = g_pHyprOpenGL->m_windowFramebuffers;
+    auto box = mWindow->getWindowBoxUnified(0);
 
-        if (buffers.contains(windowRef)) {
-            auto& fb = buffers.at(windowRef);
-            auto box = window->getWindowBoxUnified(0);
-            auto monitorBox = CBox{{}, g_pCompositor->getMonitorFromCursor()->m_size};
+    box.x -= mWindow->m_monitor->m_position.x;
+    box.y -= mWindow->m_monitor->m_position.y;
 
-            // g_pHyprOpenGL->scissor(box);
-            g_pHyprOpenGL->renderTexture(fb.getTexture(), box, 1.f, 10, 2);
-        } else {
-            // pass
-        }
+    auto power = mWindow->roundingPower();
+    auto rounding = (int)mWindow->rounding();
+ 
+    g_pHyprOpenGL->renderRect(box, CHyprColor(0, 0, 0, 1), rounding, power);
+
+    if (buffers.contains(windowRef)) {
+        auto& fb = buffers.at(windowRef);
+        g_pHyprOpenGL->renderTexture(fb.getTexture(), box, 1.f, rounding, power);
     }
 }
 
@@ -44,13 +42,13 @@ bool OverviewRenderPass::needsPrecomputeBlur() {
 }
 
 std::optional<CBox> OverviewRenderPass::boundingBox() {
-    if (!mPlugin->manager->isOverview()) return std::nullopt;
-    // return box;
-    return CBox{{}, g_pCompositor->getMonitorFromCursor()->m_size};
+    return {};
+    // if (!mPlugin->manager->isOverview()) return std::nullopt;
+    // return mWindow->getWindowBoxUnified(0);
 }
 
 CRegion OverviewRenderPass::opaqueRegion() {
-    if (!mPlugin->manager->isOverview()) return {};
-    // return  box;
-    return CBox{{}, g_pCompositor->getMonitorFromCursor()->m_size};
+    return {};
+    // if (!mPlugin->manager->isOverview()) return {};
+    // return mWindow->getWindowBoxUnified(0);
 }
