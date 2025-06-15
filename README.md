@@ -4,10 +4,19 @@ A Hyprland overview mode plugin.
 The [original repository](https://github.com/DreamMaoMao/hycov) was archived and hard to update to current version of hyprland API. <br>
 This is the reimplementation of it, that has less features for now but a more stable, easy to maintain and scale codebase. <br>
 
+## Features
+ 	- Preserves prev layout on return from overview
+	- Several overview modes - all, workspace, monitor
+ 	- hot corner has separete mappings to mods | ---- left is the 'monitor' mode ---- | ---- middle is the 'workspace' mode ---- | ---- and right is the 'all' mode ---- |
+	- Scales windows and their framebuffers properly according to the previous ratio
+ 	- Does not passes key and resize events to windows
+
 ## Config
 Example config
 ```
-bind = $mainMod, TAB, overview:enter
+bind = $mainMod, TAB, overview:enter, monitor
+bind = $mainMod, RETURN, overview:enter, all
+bind = $mainMod, GRAVE, overview:enter, workspace
 
 # binds submap that will automatically activate in overview
 submap = overview
@@ -46,7 +55,6 @@ You could also just download precompiled library.
   - cannot set same bind in 'reset' and 'overview' submaps
 
 ## Roadmap
-  - add several new modes (overview workspace, overview monitor, overview all)
   - add workspaces in overview
   - add dispatcher to enter fullscreen on window selection
   - add 'hide window' functionality
