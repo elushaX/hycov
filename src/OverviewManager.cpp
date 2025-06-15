@@ -100,14 +100,14 @@ void OverviewManager::leaveOverview() {
 }
 
 void OverviewManager::onLastActiveWindow(PHLWINDOW windowToFocus) {
-  g_pCompositor->changeWindowZOrder(windowToFocus, true);
+  if (!windowToFocus) return;
 
+  g_pCompositor->changeWindowZOrder(windowToFocus, true);
   g_pCompositor->focusWindow(windowToFocus);
 
   if (windowToFocus->m_monitor.lock() != g_pCompositor->getMonitorFromCursor()) {
     g_pCompositor->warpCursorTo(windowToFocus->middle());
   }
-
 
   for (auto monitor : g_pCompositor->m_monitors) {
     g_pHyprRenderer->damageMonitor(monitor);
