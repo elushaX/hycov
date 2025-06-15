@@ -11,6 +11,22 @@
 #include <hyprland/src/config/ConfigManager.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 
+IHyprOverviewLayout::OverviewType strToOverviewType(const std::string& str) {
+  static std::map<std::string, IHyprOverviewLayout::OverviewType> map = {
+    {"all", IHyprOverviewLayout::OverviewType::ALL},
+    {"workspace", IHyprOverviewLayout::OverviewType::WORKSPACE},
+    {"monitor", IHyprOverviewLayout::OverviewType::MONITOR},
+  };
+
+  if (!str.empty()) {
+    if (map.contains(str)) {
+      return map[str];
+    }
+  }
+
+  return IHyprOverviewLayout::OverviewType::ALL;
+}
+
 PluginState::PluginState(HANDLE _handle) {
   handle = _handle;
   manager = new OverviewManager();
@@ -21,12 +37,14 @@ PluginState::PluginState(HANDLE _handle) {
 
   HyprlandAPI::addLayout(handle, layout->getLayoutName(), layout);
 
-  HyprlandAPI::addDispatcherV2(handle, "overview:toggle", [this](const std::string&){
+  HyprlandAPI::addDispatcherV2(handle, "overview:toggle", [this](const std::string& args){
+    manager->getOverview()->setLayoutType(strToOverviewType(args));
     manager->toggle();
     return SDispatchResult();
   });
 
-  HyprlandAPI::addDispatcherV2(handle, "overview:enter", [this](const std::string&){
+  HyprlandAPI::addDispatcherV2(handle, "overview:enter", [this](const std::string& args) {
+    manager->getOverview()->setLayoutType(strToOverviewType(args));
     manager->enterOverview();
     return SDispatchResult();
   });

@@ -7,12 +7,25 @@
 
 class IHyprOverviewLayout : public IHyprLayout {
 public:
+  enum class OverviewType {
+    ALL,
+    MONITOR,
+    WORKSPACE,
+  };
+
   IHyprOverviewLayout() = default;
+
+  void setLayoutType(OverviewType type) {
+    mOverviewType = type;
+  }
 
   virtual PHLWINDOW windowFromCoords(const Vector2D&) = 0;
   virtual void moveFocus2D(eDirection dir) = 0;
   virtual bool isWindowOverviewed(PHLWINDOW window) = 0;
   virtual bool hasWindow(const PHLWINDOW& window) = 0;
+
+protected:
+  OverviewType mOverviewType = OverviewType::MONITOR;
 
 public:
   PHLWINDOW mWindowUnderCursor;

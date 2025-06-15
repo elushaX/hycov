@@ -3,6 +3,7 @@
 
 #include <utility>
 
+#include "../../../Hyprland/src/managers/input/InputManager.hpp"
 #include "hyprland/src/Compositor.hpp"
 #include "hyprland/src/managers/LayoutManager.hpp"
 #include "hyprland/src/render/Renderer.hpp"
@@ -100,7 +101,13 @@ void OverviewManager::leaveOverview() {
 
 void OverviewManager::onLastActiveWindow(PHLWINDOW windowToFocus) {
   g_pCompositor->changeWindowZOrder(windowToFocus, true);
-  g_pCompositor->focusWindow(std::move(windowToFocus));
+
+  g_pCompositor->focusWindow(windowToFocus);
+
+  if (windowToFocus->m_monitor.lock() != g_pCompositor->getMonitorFromCursor()) {
+    g_pCompositor->warpCursorTo(windowToFocus->middle());
+  }
+
 
   for (auto monitor : g_pCompositor->m_monitors) {
     g_pHyprRenderer->damageMonitor(monitor);

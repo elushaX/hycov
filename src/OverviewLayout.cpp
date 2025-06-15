@@ -53,8 +53,6 @@ void OverviewLayout::onEnable() {
       onWindowCreated(window, DIRECTION_DEFAULT);
     }
   }
-
-  processWorkspaces();
 }
 
 void OverviewLayout::onWindowCreatedTiling(PHLWINDOW window, eDirection direction) {
@@ -74,25 +72,61 @@ void OverviewLayout::addWindow(PHLWINDOW window) {
   updateLayout();
 }
 
-void OverviewLayout::processWorkspaces() {
+void OverviewLayout::updateMonitorNodes() {
   for (auto& node : mWindowNodes) {
     if (!node.second.window->m_workspace->m_isSpecialWorkspace) {
       mMonitorNodes[node.second.window->m_monitor.lock()].workspaces.insert(node.second.window->m_workspace);
     }
   }
 
+  if (auto activeMonitor = g_pCompositor->getMonitorFromCursor()) {
+    if (!mMonitorNodes.contains(activeMonitor)) {
+      mMonitorNodes.insert({activeMonitor, {}});
+    }
+  }
+
   for (auto& [monitor, node] : mMonitorNodes) {
     monitor->setSpecialWorkspace(nullptr);
     node.monitor = monitor;
+
+    if (monitor->m_activeWorkspace) {
+      node.workspaces.insert(monitor->m_activeWorkspace);
+      node.activeWs = monitor->m_activeWorkspace;
+    }
+  }
+}
+
+void OverviewLayout::mapWindowsToMonitors() {
+
+  // this it needed to disable minSize clamping
+  for (auto& node : mWindowNodes) {
+    node.second.window->m_isFloating = false;
   }
 
-  for (auto& node : mWindowNodes) {
-    auto monitor = node.second.window->m_monitor;
-    auto workspace = monitor->m_activeWorkspace;
+  switch (mOverviewType) {
+    case OverviewType::ALL: {
+      if (auto monitor = g_pCompositor->getMonitorFromCursor(); mMonitorNodes.contains(monitor)) {
+        auto monitorNode = mMonitorNodes.at(monitor);
+        for (auto& node : mWindowNodes) {
+          node.second.window->m_workspace = monitorNode.activeWs;
+          node.second.window->m_monitor = monitorNode.monitor;
+        }
+      } 
+      break;
+    }
+    case OverviewType::MONITOR: {
+      for (auto& node : mWindowNodes) {
+        auto monitor = node.second.window->m_monitor;
+        auto workspace = monitor->m_activeWorkspace;
 
-    node.second.window->m_workspace = workspace;
-    node.second.window->m_monitor = monitor;
-    node.second.window->m_isFloating = false; // this it needed to disable minSize clamping
+        node.second.window->m_workspace = workspace;
+        node.second.window->m_monitor = monitor;
+      }
+      break;
+    }
+    case OverviewType::WORKSPACE: {
+      // we dont change anything
+    }
   }
 }
 
@@ -133,6 +167,9 @@ void OverviewLayout::onWindowRemovedTiling(PHLWINDOW pWindow) {
 }
 
 void OverviewLayout::updateLayout() {
+  updateMonitorNodes();
+  mapWindowsToMonitors();
+
   for (auto &monitor: g_pCompositor->m_monitors) {
     recalculateMonitor(monitor->m_id);
   }
@@ -159,6 +196,11 @@ void OverviewLayout::updateLayout() {
   }
 
   scaleActiveWindow();
+
+  // force to rerender all monitors
+  for (auto &monitor: g_pCompositor->m_monitors) {
+    g_pHyprRenderer->damageMonitor(monitor);
+  }
 }
 
 void OverviewLayout::recalculateMonitor(const MONITORID &monitorId) {
@@ -179,7 +221,18 @@ void OverviewLayout::recalculateMonitor(const MONITORID &monitorId) {
 }
 
 void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWORKSPACE& workspace) const {
-  if (monitorNode->windows.empty()) {
+  auto windows = monitorNode->windows;
+
+  if (mOverviewType == OverviewType::WORKSPACE) {
+    windows.clear();
+    for (auto& window : monitorNode->windows) {
+      if (window->window->m_workspace == monitorNode->activeWs) {
+        windows.emplace_back(window);
+      }
+    }
+  }
+
+  if (windows.empty()) {
     return;
   }
 
@@ -190,7 +243,7 @@ void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWO
   auto monitorW = (int) (monitor->m_size.x - monitor->m_reservedTopLeft.x);
   auto monitorH = (int) (monitor->m_size.y - monitor->m_reservedTopLeft.y);
 
-  auto numNodes = (int) monitorNode->windows.size();
+  auto numNodes = (int) windows.size();
 
   // Calculate the integer part of the square root of the number of nodes
   int columns = 0;
@@ -217,7 +270,7 @@ void OverviewLayout::calculateOverviewGrid(MonitorNode* monitorNode, const PHLWO
   }
 
   for (int i = 0; i < numNodes; i++) {
-    auto node = monitorNode->windows[i];
+    auto node = windows[i];
 
     int column = i % columns;
     int row = i / columns;

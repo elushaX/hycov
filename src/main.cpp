@@ -74,9 +74,10 @@ void onMouseMoved(void* self, uint32_t val, bool refocus, bool mouse) {
   static bool cooldown = false;
   static auto lastPos = g_pInputManager->getMouseCoordsInternal();
   
-  Vector2D currentPos = g_pInputManager->getMouseCoordsInternal();;
+  auto monitor = g_pCompositor->getMonitorFromCursor();
+  Vector2D currentPos = g_pInputManager->getMouseCoordsInternal() - monitor->m_position;
   auto delta = currentPos - lastPos;
-
+  auto width = monitor->m_size.x;
   // Debug::log(LOG, "OVR: " + std::to_string(currentPos.y) + "  " + std::to_string(delta.y));
 
   if (cooldown) {
@@ -85,6 +86,14 @@ void onMouseMoved(void* self, uint32_t val, bool refocus, bool mouse) {
     }
   } else {
     if (-delta.y > mHotAreaSpeed && currentPos.y < mHotAreaHeight) {
+      // map different regions to different overview types
+      if (currentPos.x < width / 3.f) {
+        gPluginState->manager->getOverview()->setLayoutType(IHyprOverviewLayout::OverviewType::MONITOR);
+      } else if (currentPos.x > (width / 3.f) * 2) {
+        gPluginState->manager->getOverview()->setLayoutType(IHyprOverviewLayout::OverviewType::ALL);
+      } else {
+        gPluginState->manager->getOverview()->setLayoutType(IHyprOverviewLayout::OverviewType::WORKSPACE);
+      }
       gPluginState->manager->toggle();
       cooldown = true;
     }

@@ -44,7 +44,7 @@ class OverviewLayout : public IHyprOverviewLayout {
 
   struct MonitorNode {
     std::set<PHLWORKSPACE> workspaces;
-    PHLWORKSPACE active;
+    PHLWORKSPACE activeWs;
 
     std::vector<OverviewWindowNode*> windows;
     int prevWorkspaceId = -1;
@@ -100,9 +100,10 @@ public:
 private:
   void updateLayout();
   void calculateOverviewGrid(MonitorNode* monitorNode, const PHLWORKSPACE& workspace) const;
-  void processWorkspaces();
+  void mapWindowsToMonitors();
   bool isWindowOverviewed(PHLWINDOW window) override;
   void scaleActiveWindow();
+  void updateMonitorNodes();
 
 public:
   std::map<PHLMONITOR, MonitorNode> mMonitorNodes;
