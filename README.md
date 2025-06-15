@@ -2,11 +2,10 @@
 A Hyprland overview mode plugin.
 
 The [original repository](https://github.com/DreamMaoMao/hycov) was archived and hard to update to current version of hyprland API. <br>
-This is the reimplementation of it. <br>
-It has less features for now but a more stable and easy to scale codebase to maintain. <br>
+This is the reimplementation of it, that has less features for now but a more stable, easy to maintain and scale codebase. <br>
 
 ## Config
-For now it has only one dispatcher that toggle the overview.
+Example config
 ```
 bind = $mainMod, TAB, overview:enter
 
@@ -37,11 +36,13 @@ https://github.com/DreamMaoMao/hycov/assets/30348075/59121362-21a8-4143-be95-72c
 I tested only manual installation for now:
   - build with cmake and gcc
   - then ```hyprctl plugin load full_path_to.so```
+You could also just download precompiled library.
 
 
 ## Known issues 
-  - currently only for selecting window, closing and opening windows is not support
+  - some parameters are not exposed to hyprland config
   - not tested with window groups
+  - currently only for selecting window, closing and opening windows is not support
   - cannot set same bind in 'reset' and 'overview' submaps
 
 ## Roadmap
