@@ -49,6 +49,7 @@ You could also just download precompiled library.
 
 
 ## Known issues 
+  - bugs in workspace mode with empty workspace
   - some parameters are not exposed to hyprland config
   - not tested with window groups
   - currently only for selecting window, closing and opening windows is not support
