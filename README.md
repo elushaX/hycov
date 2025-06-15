@@ -7,7 +7,7 @@ This is the reimplementation of it, that has less features for now but a more st
 ## Features
   - Preserves prev layout on return from overview
   - Several overview modes - all, workspace, monitor
-  - hot corner has separete mappings to mods | ---- left is the 'monitor' mode ---- | ---- middle is the 'workspace' mode ---- | ---- and right is the 'all' mode ---- |
+  - hot corner has separete mappings to mods |----'monitor'----x----'workspace'----x----'all'----|
   - Scales windows and their framebuffers properly according to the previous ratio
   - Does not passes key and resize events to windows
 
