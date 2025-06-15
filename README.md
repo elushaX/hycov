@@ -5,11 +5,11 @@ The [original repository](https://github.com/DreamMaoMao/hycov) was archived and
 This is the reimplementation of it, that has less features for now but a more stable, easy to maintain and scale codebase. <br>
 
 ## Features
- 	- Preserves prev layout on return from overview
-	- Several overview modes - all, workspace, monitor
- 	- hot corner has separete mappings to mods | ---- left is the 'monitor' mode ---- | ---- middle is the 'workspace' mode ---- | ---- and right is the 'all' mode ---- |
-	- Scales windows and their framebuffers properly according to the previous ratio
- 	- Does not passes key and resize events to windows
+  - Preserves prev layout on return from overview
+  - Several overview modes - all, workspace, monitor
+  - hot corner has separete mappings to mods | ---- left is the 'monitor' mode ---- | ---- middle is the 'workspace' mode ---- | ---- and right is the 'all' mode ---- |
+  - Scales windows and their framebuffers properly according to the previous ratio
+  - Does not passes key and resize events to windows
 
 ## Config
 Example config
